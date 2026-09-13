@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>3D Interactive Menu - Omah Rasa</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0d0a08;
+            --card-bg: rgba(28, 20, 16, 0.75);
+            --primary-color: #f3a971;
+            --accent-color: #d97736;
+            --text-light: #fcf8f3;
+            --text-muted: #a4968c;
+            --glow: rgba(243, 169, 113, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            overflow-x: hidden;
+            padding-bottom: 120px;
+        }
+
+        #webgl-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 2;
+            padding: 0 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .hero-section {
+            min-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .hero-badge {
+            background: rgba(243, 169, 113, 0.15);
+            border: 1px solid var(--primary-color);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 34px;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px var(--glow);
+        }
+
+        .hero-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 280px;
+        }
+
+        .scroll-hint {
+            margin-top: 40px;
+            font-size: 11px;
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-10px);
+            }
+
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .table-section {
+            background: var(--card-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 35px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .table-label {
+            display: block;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .table-select {
+            width: 100%;
+            height: 58px;
+            border-radius: 15px;
+            border: 2px solid var(--primary-color);
+            background: #17100d;
+            color: white;
+            padding: 0 15px;
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .table-select:focus {
+            box-shadow: 0 0 20px var(--glow);
+        }
+
+        .table-warning {
+            display: none;
+            text-align: center;
+            color: #ff7777;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .section-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            color: var(--primary-color);
+            margin: 40px 0 20px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(243, 169, 113, 0.2);
+        }
+
+        .menu-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(243, 169, 113, 0.2);
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .card-img-box {
+            width: 85px;
+            height: 85px;
+            border-radius: 18px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid rgba(243, 169, 113, 0.3);
+        }
+
+        .card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .menu-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .card-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .price {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: #fff;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            font-size: 21px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--glow);
+        }
+
+        .btn-add:active {
+            transform: scale(0.85);
+        }
+
+        /* KERANJANG */
+
+        .cart-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 460px;
+            background: rgba(20, 15, 12, 0.95);
+            border: 1px solid var(--primary-color);
+            backdrop-filter: blur(20px);
+            padding: 12px 20px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 20px var(--glow);
+            z-index: 100;
+        }
+
+        .checkout-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* MODAL KERANJANG */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-box {
+            background: linear-gradient(145deg, #241b16, #120d0a);
+            border: 1px solid var(--primary-color);
+            width: 100%;
+            max-width: 390px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 25px 20px;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+        }
+
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(243,169,113,0.2);
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .cart-item-subtotal {
+            color: var(--primary-color);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quantity-control button {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid var(--primary-color);
+            background: transparent;
+            color: var(--primary-color);
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .quantity-control span {
+            min-width: 20px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .modal-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--primary-color);
+            font-weight: 700;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .cancel-btn,
+        .send-btn {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .cancel-btn {
+            background: #3a2b25;
+            color: white;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+        }
+
+        /* SUKSES */
+
+        .success-box {
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .success-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin: 10px 0 20px;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: #fff;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 400px) {
+            .hero-title {
+                font-size: 30px;
+            }
+
+            .card-img-box {
+                width: 75px;
+                height: 75px;
+            }
+
+            .menu-title {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="webgl-bg"></canvas>
+
+<div class="content-wrapper">
+
+    <section class="hero-section">
+
+        <div class="hero-badge" id="mejaBadge">
+            PILIH MEJA
+        </div>
+
+        <h1 class="hero-title">
+            Menu
+        </h1>
+
+        <p class="hero-desc">
+            Pilih nomor meja terlebih dahulu,
+            kemudian pilih menu favoritmu.
+        </p>
+
+        <div class="scroll-hint">
+            <span>GULIR KE BAWAH</span>
+            <span>↓</span>
+        </div>
+
+    </section>
+
+
+    <!-- PILIH MEJA -->
+
+    <div class="table-section">
+
+        <label class="table-label">
+            📍 PILIH NOMOR MEJA
+        </label>
+
+        <select
+            id="nomorMeja"
+            class="table-select"
+            onchange="updateMeja()"
+        >
+            <option value="">
+                — Pilih Meja 1–15 —
+            </option>
+
+            <option value="Meja 1">Meja 1</option>
+            <option value="Meja 2">Meja 2</option>
+            <option value="Meja 3">Meja 3</option>
+            <option value="Meja 4">Meja 4</option>
+            <option value="Meja 5">Meja 5</option>
+            <option value="Meja 6">Meja 6</option>
+            <option value="Meja 7">Meja 7</option>
+            <option value="Meja 8">Meja 8</option>
+            <option value="Meja 9">Meja 9</option>
+            <option value="Meja 10">Meja 10</option>
+            <option value="Meja 11">Meja 11</option>
+            <option value="Meja 12">Meja 12</option>
+            <option value="Meja 13">Meja 13</option>
+            <option value="Meja 14">Meja 14</option>
+            <option value="Meja 15">Meja 15</option>
+
+        </select>
+
+        <div id="tableWarning" class="table-warning">
+            Silakan pilih nomor meja terlebih dahulu.
+        </div>
+
+    </div>
+
+
+    <!-- MAKANAN -->
+
+    <div class="section-header">
+        🍲 Makanan Utama
+    </div>
+
+
+    <div class="menu-card">
+
+        <div class="card-img-box">
+            <img src="https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=300&q=80">
+        </div>
+
+        <div class="card-details">
+
+            <div>
+                <div class="menu-title">
+                    Nasi Goreng Rempah
+                </div>
+
+                <div class="menu-desc">
+                    Nasi goreng kaya bumbu rempah.
+                </div>
+            </div>
+
+            <div class="card-action">
+
+                <span class="price">
+                    Rp 25.000
+                </span>
+
+                <button
+                    class="btn-add"
+                    onclick="addToCart('Nasi Goreng Rempah',25000)"
+                >
+                    +
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="menu-card">
+
+        <div class="card-img-box">
+            <img src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=300&q=80">
+        </div>
+
+        <div class="card-details">
+
+            <div>
+                <div class="menu-title">
+                    Ayam Bakar Madu
+                </div>
+
+                <div class="menu-desc">
+                    Ayam empuk dipanggang olesan madu.
+                </div>
+            </div>
+
+            <div class="card-action">
+
+                <span class="price">
+                    Rp 28.000
+                </span>
+
+                <button
+                    class="btn-add"
+                    onclick="addToCart('Ayam Bakar Madu',28000)"
+                >
+                    +
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MINUMAN -->
+
+    <div class="section-header">
+        ☕ Minuman & Kopi
+    </div>
+
+
+    <div class="menu-card">
+
+        <div class="card-img-box">
+            <img src="https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=300&q=80">
+        </div>
+
+        <div class="card-details">
+
+            <div>
+                <div class="menu-title">
+                    Kopi Susu Gula Aren
+                </div>
+
+                <div class="menu-desc">
+                    Espresso klasik dipadu gula aren.
+                </div>
+            </div>
+
+            <div class="card-action">
+
+                <span class="price">
+                    Rp 18.000
+                </span>
+
+                <button
+                    class="btn-add"
+                    onclick="addToCart('Kopi Susu Gula Aren',18000)"
+                >
+                    +
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- CART BAR -->
+
+<div
+    class="cart-bar"
+    id="cartBar"
+    style="display:none;"
+>
+
+    <div>
+
+        <span
+            id="cartCount"
+            style="background:var(--primary-color);color:#000;padding:3px 8px;border-radius:10px;font-weight:700;font-size:11px;"
+        >
+            0 Item
+        </span>
+
+        <span
+            id="cartTotal"
+            style="margin-left:10px;font-weight:700;color:#fff;"
+        >
+            Rp 0
+        </span>
+
+    </div>
+
+    <button
+        class="checkout-btn"
+        onclick="openCart()"
+    >
+        Lihat Pesanan →
+    </button>
+
+</div>
+
+
+<!-- MODAL KERANJANG -->
+
+<div
+    class="modal-overlay"
+    id="cartModal"
+>
+
+    <div class="modal-box">
+
+        <h3 class="modal-title">
+            Pesanan Kamu
+        </h3>
+
+        <div id="cartItems"></div>
+
+        <div class="modal-total">
+
+            <span>
+                TOTAL
+            </span>
+
+            <span id="modalTotal">
+                Rp 0
+            </span>
+
+        </div>
+
+        <div class="modal-buttons">
+
+            <button
+                class="cancel-btn"
+                onclick="closeCart()"
+            >
+                Tutup
+            </button>
+
+            <button
+                class="send-btn"
+                onclick="sendOrderToKitchen()"
+            >
+                Pesan Sekarang
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- MODAL SUKSES -->
+
+<div
+    class="modal-overlay"
+    id="orderModal"
+>
+
+    <div class="modal-box success-box">
+
+        <div class="success-icon">
+            👨‍🍳
+        </div>
+
+        <h3 class="modal-title">
+            Pesanan Terkirim!
+        </h3>
+
+        <p class="success-text">
+            Pesananmu sudah masuk ke layar monitor dapur.
+        </p>
+
+        <button
+            class="modal-btn"
+            onclick="closeModal()"
+        >
+            Oke, Sip!
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // ==========================================
+    // SUPABASE
+    // ==========================================
+
+    const SUPABASE_URL =
+        "https://ebfzxtdumtllztgnijww.supabase.co";
+
+    const SUPABASE_KEY =
+        "sb_publishable_YVUp6Jqo66JTGVOMgD_r7w_9NAF4AZO";
+
+
+    // ==========================================
+    // KERANJANG
+    // ==========================================
+
+    let cartItems = [];
+
+
+    function addToCart(name, price) {
+
+        const existing =
+            cartItems.find(
+                item => item.name === name
+            );
+
+        if (existing) {
+
+            existing.qty++;
+
+        } else {
+
+            cartItems.push({
+                name: name,
+                price: price,
+                qty: 1
+            });
+
+        }
+
+        updateCartUI();
+
+    }
+
+
+    function increaseItem(name) {
+
+        const item =
+            cartItems.find(
+                item => item.name === name
+            );
+
+        if (!item) return;
+
+        item.qty++;
+
+        renderCart();
+        updateCartUI();
+
+    }
+
+
+    function decreaseItem(name) {
+
+        const item =
+            cartItems.find(
+                item => item.name === name
+            );
+
+        if (!item) return;
+
+        item.qty--;
+
+        if (item.qty <= 0) {
+
+            cartItems =
+                cartItems.filter(
+                    item => item.name !== name
+                );
+
+        }
+
+        renderCart();
+        updateCartUI();
+
+    }
+
+
+    function updateCartUI() {
+
+        const cartBar =
+            document.getElementById("cartBar");
+
+
+        if (cartItems.length === 0) {
+
+            cartBar.style.display = "none";
+
+            return;
+
+        }
+
+
+        cartBar.style.display = "flex";
+
+
+        let totalItems = 0;
+        let totalPrice = 0;
+
+
+        cartItems.forEach(item => {
+
+            totalItems += item.qty;
+
+            totalPrice +=
+                item.price * item.qty;
+
+        });
+
+
+        document.getElementById("cartCount")
+            .innerText =
+            `${totalItems} Item`;
+
+
+        document.getElementById("cartTotal")
+            .innerText =
+            `Rp ${totalPrice.toLocaleString("id-ID")}`;
+
+    }
+
+
+    // ==========================================
+    // PILIH MEJA
+    // ==========================================
+
+    function updateMeja() {
+
+        const meja =
+            document.getElementById(
+                "nomorMeja"
+            ).value;
+
+
+        const badge =
+            document.getElementById(
+                "mejaBadge"
+            );
+
+
+        if (meja) {
+
+            badge.innerText =
+                "📍 " + meja;
+
+            document.getElementById(
+                "tableWarning"
+            ).style.display = "none";
+
+        } else {
+
+            badge.innerText =
+                "📍 PILIH MEJA";
+
+        }
+
+    }
+
+
+    // ==========================================
+    // BUKA KERANJANG
+    // ==========================================
+
+    function openCart() {
+
+        if (cartItems.length === 0) {
+
+            alert("Keranjang masih kosong.");
+
+            return;
+
+        }
+
+        renderCart();
+
+        document.getElementById(
+            "cartModal"
+        ).classList.add("active");
+
+    }
+
+
+    function closeCart() {
+
+        document.getElementById(
+            "cartModal"
+        ).classList.remove("active");
+
+    }
+
+
+    // ==========================================
+    // TAMPILKAN KERANJANG
+    // ==========================================
+
+    function renderCart() {
+
+        const container =
+            document.getElementById(
+                "cartItems"
+            );
+
+
+        container.innerHTML = "";
+
+
+        let total = 0;
+
+
+        cartItems.forEach(item => {
+
+            const subtotal =
+                item.price * item.qty;
+
+            total += subtotal;
+
+
+            container.innerHTML += `
+
+                <div class="cart-item">
+
+                    <div class="cart-item-info">
+
+                        <div class="cart-item-name">
+                            ${item.name}
+                        </div>
+
+                        <div class="cart-item-subtotal">
+                            Rp ${subtotal.toLocaleString("id-ID")}
+                        </div>
+
+                    </div>
+
+
+                    <div class="quantity-control">
+
+                        <button
+                            onclick="decreaseItem('${item.name}')"
+                        >
+                            −
+                        </button>
+
+                        <span>
+                            ${item.qty}
+                        </span>
+
+                        <button
+                            onclick="increaseItem('${item.name}')"
+                        >
+                            +
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        });
+
+
+        document.getElementById(
+            "modalTotal"
+        ).innerText =
+            `Rp ${total.toLocaleString("id-ID")}`;
+
+    }
+
+
+    // ==========================================
+    // KIRIM PESANAN KE SUPABASE
+    // ==========================================
+
+    async function sendOrderToKitchen() {
+
+        if (cartItems.length === 0) {
+
+            alert("Keranjang masih kosong.");
+
+            return;
+
+        }
+
+
+        const meja =
+            document.getElementById(
+                "nomorMeja"
+            ).value;
+
+
+        if (!meja) {
+
+            document.getElementById(
+                "tableWarning"
+            ).style.display = "block";
+
+            closeCart();
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+
+            return;
+
+        }
+
+
+        const newOrder = {
+
+            id: Date.now(),
+
+            meja: meja,
+
+            jam: new Date().toLocaleTimeString(
+                "id-ID",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            ) + " WIB",
+
+            items: cartItems
+
+        };
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/order`,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "apikey": SUPABASE_KEY,
+                            "Authorization":
+                                `Bearer ${SUPABASE_KEY}`,
+                            "Content-Type":
+                                "application/json",
+                            "Prefer":
+                                "return=minimal"
+                        },
+
+                        body:
+                            JSON.stringify(newOrder)
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const error =
+                    await response.text();
+
+                console.error(
+                    "SUPABASE ERROR:",
+                    error
+                );
+
+                alert(
+                    "Pesanan gagal dikirim.\n\n" +
+                    error
+                );
+
+                return;
+
+            }
+
+
+            // Berhasil
+
+            cartItems = [];
+
+            updateCartUI();
+
+            closeCart();
+
+            document.getElementById(
+                "orderModal"
+            ).classList.add("active");
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Tidak bisa terhubung ke server."
+            );
+
+        }
+
+    }
+
+
+    function closeModal() {
+
+        document.getElementById(
+            "orderModal"
+        ).classList.remove("active");
+
+    }
+
+
+    // ==========================================
+    // THREE.JS 3D BACKGROUND
+    // ==========================================
+
+    const canvas =
+        document.getElementById(
+            "webgl-bg"
+        );
+
+
+    const scene =
+        new THREE.Scene();
+
+
+    const camera =
+        new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth /
+            window.innerHeight,
+            0.1,
+            1000
+        );
+
+
+    camera.position.z = 5;
+
+
+    const renderer =
+        new THREE.WebGLRenderer({
+            canvas: canvas,
+            alpha: true,
+            antialias: true
+        });
+
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+
+    const ambientLight =
+        new THREE.AmbientLight(
+            0xffffff,
+            0.7
+        );
+
+    scene.add(ambientLight);
+
+
+    const dirLight =
+        new THREE.DirectionalLight(
+            0xf3a971,
+            1.5
+        );
+
+    dirLight.position.set(
+        5,
+        5,
+        5
+    );
+
+    scene.add(dirLight);
+
+
+    const geometry =
+        new THREE.IcosahedronGeometry(
+            1.5,
+            1
+        );
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: 0xf3a971,
+            roughness: 0.2,
+            metalness: 0.8,
+            wireframe: true
+        });
+
+
+    const mesh3D =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    scene.add(mesh3D);
+
+
+    let scrollY = 0;
+
+
+    window.addEventListener(
+        "scroll",
+        () => {
+            scrollY =
+                window.scrollY;
+        }
+    );
+
+
+    function animate() {
+
+        requestAnimationFrame(
+            animate
+        );
+
+        mesh3D.rotation.x =
+            scrollY * 0.003;
+
+        mesh3D.rotation.y =
+            scrollY * 0.005;
+
+        renderer.render(
+            scene,
+            camera
+        );
+
+    }
+
+
+    animate();
+
+
+    window.addEventListener(
+        "resize",
+        () => {
+
+            camera.aspect =
+                window.innerWidth /
+                window.innerHeight;
+
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(
+                window.innerWidth,
+                window.innerHeight
+            );
+
+        }
+    );
+
+</script>
+
+</body>
+</html>
